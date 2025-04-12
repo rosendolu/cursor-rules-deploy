@@ -1,0 +1,42 @@
+# Development files
+.git
+.github
+.gitignore
+.DS_Store
+.editorconfig
+.eslintrc
+.prettierrc
+.vscode
+.temp/
+tmep/
+# Test files
+test/
+__tests__/
+*.test.js
+*.spec.js
+
+# Documentation
+docs/
+*.md
+!README.md
+!CHANGELOG.md
+
+# Build files
+dist/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.*
+
+# IDE files
+.idea/
+*.swp
+*.swo

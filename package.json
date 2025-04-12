@@ -1,0 +1,78 @@
+{
+    "name": "cursor-rules-deploy",
+    "version": "1.0.0",
+    "description": "🚀 A powerful CLI tool for deploying Cursor AI rules and templates - Enhance your development workflow with AI-powered coding assistance",
+    "type": "module",
+    "bin": {
+        "cursor-rules-deploy": "./dist/bin/cli.js"
+    },
+    "scripts": {
+        "build": "tsc && tsc-alias",
+        "dev": "NODE_OPTIONS='--experimental-specifier-resolution=node --import tsx --import tsconfig-paths/register' tsx bin/cli.ts",
+        "start": "node dist/bin/cli.js",
+        "test": "NODE_OPTIONS='--experimental-specifier-resolution=node --import tsx --import tsconfig-paths/register' tsx --test test/**/*.test.ts",
+        "lint": "eslint ./src/**/*.ts",
+        "format": "prettier --write .",
+        "prepublishOnly": "npm run build && npm run test && npm run lint",
+        "clean": "rimraf dist"
+    },
+    "keywords": [
+        "cursor",
+        "ai",
+        "rules",
+        "templates",
+        "cli",
+        "cursor-ai",
+        "development-tools",
+        "productivity",
+        "code-generation",
+        "ai-assistant"
+    ],
+    "author": {
+        "name": "rosendolu",
+        "url": "https://github.com/rosendolu"
+    },
+    "license": "MIT",
+    "engines": {
+        "node": ">=22.14.0"
+    },
+    "dependencies": {
+        "chalk": "^5.3.0",
+        "commander": "^11.0.0",
+        "degit": "^2.8.4",
+        "fs-extra": "^11.2.0",
+        "inquirer": "^9.2.12",
+        "ora": "^8.0.1"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.24.0",
+        "@types/degit": "^2.8.4",
+        "@types/fs-extra": "^11.0.4",
+        "@types/inquirer": "^9.0.7",
+        "@types/node": "^20.11.30",
+        "eslint": "^8.57.1",
+        "globals": "^16.0.0",
+        "prettier": "^3.2.5",
+        "rimraf": "^5.0.5",
+        "ts-node": "^10.9.2",
+        "tsc-alias": "^1.8.15",
+        "tsconfig-paths": "^4.2.0",
+        "tsx": "^4.7.1",
+        "typescript": "^5.4.2",
+        "typescript-eslint": "^8.29.1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rosendolu/cursor-rules-deploy.git"
+    },
+    "bugs": {
+        "url": "https://github.com/rosendolu/cursor-rules-deploy/issues"
+    },
+    "homepage": "https://github.com/rosendolu/cursor-rules-deploy#readme",
+    "files": [
+        "dist/",
+        "templates/",
+        "README.md",
+        "LICENSE"
+    ]
+}

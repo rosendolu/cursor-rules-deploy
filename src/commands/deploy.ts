@@ -5,8 +5,8 @@ import path from 'path';
 
 export async function deploy(targetDir: string): Promise<void> {
     try {
-        // Normalize and resolve the target directory path
-        const resolvedTargetDir: string = path.resolve(process.cwd(), targetDir);
+        // Handle both absolute and relative paths
+        const resolvedTargetDir: string = path.isAbsolute(targetDir) ? targetDir : path.resolve(process.cwd(), targetDir);
 
         Logger.info(`Deploying to: ${resolvedTargetDir}`);
 

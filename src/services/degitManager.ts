@@ -1,6 +1,7 @@
 import Logger from '@/utils/logger.js';
 import degit from 'degit';
 import fs from 'fs-extra';
+import { globby } from 'globby';
 import { rm } from 'node:fs/promises';
 import os from 'os';
 import path from 'path';
@@ -63,9 +64,78 @@ class DegitManager {
         }
     }
 
+    private static formatPath(filePath: string): string {
+        // 移除开头的 ./ 或 /
+        return filePath.replace(/^\.\/|^\//, '');
+    }
+
+    private static groupFilesByDirectory(files: string[]): Map<string, string[]> {
+        const groups = new Map<string, string[]>();
+
+        for (const file of files) {
+            const formattedPath = this.formatPath(file);
+            const dir = path.dirname(formattedPath);
+            if (!groups.has(dir)) {
+                groups.set(dir, []);
+            }
+            groups.get(dir)?.push(formattedPath);
+        }
+
+        return groups;
+    }
+
+    private static logGroupedFiles(groups: Map<string, string[]>, status: 'copied' | 'skipped'): void {
+        const sortedDirs = Array.from(groups.keys()).sort();
+        const icon = status === 'copied' ? '📦' : '⚠️';
+        const action = status === 'copied' ? 'Copied' : 'Skipped existing';
+
+        for (const dir of sortedDirs) {
+            if (dir === '.') {
+                // 根目录文件
+                groups.get(dir)?.forEach(file => {
+                    Logger.info(`${icon} ${action}: ${file}`);
+                });
+            } else {
+                // 输出目录名
+                Logger.info(`\n${dir}/`);
+                // 输出该目录下的文件
+                groups.get(dir)?.forEach(file => {
+                    Logger.info(`  ${icon} ${action}: ${path.basename(file)}`);
+                });
+            }
+        }
+    }
+
+    private static async copyWithCheck(src: string, dest: string): Promise<{ copied: boolean }> {
+        try {
+            // check if the file exists
+            const exists = await fs.pathExists(dest);
+            if (exists) {
+                Logger.debug(`Skipped existing: ${dest}`);
+                return { copied: false };
+            }
+
+            // ensure the destination directory exists
+            await fs.ensureDir(path.dirname(dest));
+
+            // copy the file
+            await fs.copy(src, dest, {
+                overwrite: false,
+                errorOnExist: false,
+            });
+
+            return { copied: true };
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'EACCES') {
+                throw new Error(`Permission denied: Unable to write to ${dest}`);
+            }
+            throw error;
+        }
+    }
+
     static async copyTemplate(targetDir: string): Promise<void> {
         const sourceRepo = 'bmadcode/cursor-custom-agents-rules-generator';
-        const spinner = Logger.progress('Copying template from repository');
+        const spinner = Logger.progress('Copying template from repository\n');
 
         // Create a temporary directory
         const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cursor-rules-'));
@@ -81,86 +151,49 @@ class DegitManager {
             });
             await emitter.clone(tempDir);
 
-            // Check for existing files first
-            const filesToMove: string[] = ['.cursor', 'docs', 'xnotes', '.cursorignore', '.cursorindexingignore'];
+            // Define base directories and files to process
+            const baseItems = ['.cursor/**/*', 'docs/**/*', 'xnotes/**/*', '.cursorignore', '.cursorindexingignore'];
 
-            let hasExistingFiles = false;
-            const existingFiles: string[] = [];
+            // Find all files matching the patterns
+            const files = await globby(baseItems, {
+                cwd: tempDir,
+                dot: true,
+                onlyFiles: true,
+            });
 
-            // First check which files already exist and verify permissions
-            for (const file of filesToMove) {
-                const dest = path.join(targetDir, file);
-                if (await fs.pathExists(dest)) {
-                    existingFiles.push(file);
-                    hasExistingFiles = true;
+            const copiedFiles: string[] = [];
+            const skippedFiles: string[] = [];
 
-                    // Check permissions on existing directories
-                    try {
-                        const stats = await fs.stat(dest);
-                        if (stats.isDirectory()) {
-                            await fs.access(dest, fs.constants.W_OK);
-                        }
-                    } catch (error) {
-                        if ((error as NodeJS.ErrnoException).code === 'EACCES') {
-                            throw new Error(`permission denied: Unable to access ${file}`);
-                        }
-                    }
-                } else {
-                    // Check write permissions for non-existing files
-                    try {
-                        const destDir = path.dirname(dest);
-                        await fs.access(destDir, fs.constants.W_OK);
-                    } catch (error) {
-                        if ((error as NodeJS.ErrnoException).code === 'EACCES') {
-                            throw new Error(`permission denied: Unable to write to ${file}`);
-                        }
-                        throw error;
-                    }
-                }
-            }
-
-            // Warn about existing files
-            if (hasExistingFiles) {
-                console.warn('⚠️ The following files/directories already exist and will be skipped:');
-                for (const file of existingFiles) {
-                    console.warn(`- ${file}`);
-                }
-                console.warn('To update these files, please back them up and remove them first.');
-
-                // If all files exist, log appropriate message
-                if (existingFiles.length === filesToMove.length) {
-                    console.info('No new files were copied - all files already exist');
-                    spinner.warn('No new files were copied - all files already exist');
-                    return;
-                }
-            }
-
-            // Move non-existing files (but log as copy for user clarity)
-            let filesProcessed = false;
-            for (const file of filesToMove) {
+            // Process each matched file
+            for (const file of files) {
                 const src = path.join(tempDir, file);
                 const dest = path.join(targetDir, file);
 
-                if (await fs.pathExists(src)) {
-                    if (!(await fs.pathExists(dest))) {
-                        try {
-                            await fs.move(src, dest);
-                            Logger.info(`📦 Copied ${file} to target directory`);
-                            filesProcessed = true;
-                        } catch (moveError) {
-                            if ((moveError as NodeJS.ErrnoException).code === 'EACCES') {
-                                throw new Error(`permission denied: Unable to write to ${file}`);
-                            }
-                            throw moveError;
-                        }
-                    }
+                const { copied } = await this.copyWithCheck(src, dest);
+                if (copied) {
+                    copiedFiles.push(file);
+                } else {
+                    skippedFiles.push(file);
                 }
             }
 
-            if (!filesProcessed && !hasExistingFiles) {
-                spinner.warn('No files were processed');
-            } else if (filesProcessed) {
+            // Group and log files by directory
+            if (copiedFiles.length > 0) {
+                Logger.info('\n📦 Copied files:');
+                this.logGroupedFiles(this.groupFilesByDirectory(copiedFiles), 'copied');
+            }
+
+            if (skippedFiles.length > 0) {
+                Logger.info('\n⚠️ Skipped files:');
+                this.logGroupedFiles(this.groupFilesByDirectory(skippedFiles), 'skipped');
+                console.warn('\nSome files were skipped because they already exist.');
+                console.warn('To update these files, please back them up and remove them first.');
+            }
+
+            if (copiedFiles.length > 0) {
                 spinner.succeed('Template files copied successfully');
+            } else {
+                spinner.warn('No new files were copied - all files already exist');
             }
         } catch (error) {
             spinner.fail('Failed to copy template files');

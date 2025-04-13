@@ -32,5 +32,13 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            - name: Run prepublishOnly script
-              run: npm run prepublishOnly
+            - name: Build
+              run: npm run build
+
+            - name: Lint
+              run: npm run lint
+
+            - name: Test
+              env:
+                  NODE_OPTIONS: '--experimental-specifier-resolution=node --import tsx --import tsconfig-paths/register'
+              run: npm run test

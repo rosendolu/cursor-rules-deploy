@@ -2,9 +2,21 @@ import Logger from '@/utils/logger.js';
 import degit from 'degit';
 import fs from 'fs-extra';
 import { globby } from 'globby';
+import inquirer from 'inquirer';
+import inquirerPrompt from 'inquirer-autocomplete-prompt';
 import { rm } from 'node:fs/promises';
 import os from 'os';
 import path from 'path';
+import { GitHubService } from './GitHubService.js';
+
+// Register the autocomplete prompt
+inquirer.registerPrompt('autocomplete', inquirerPrompt);
+
+interface RepoChoice {
+    name: string;
+    value: string;
+    description: string;
+}
 
 class DegitManager {
     static async cleanupTempDir(tempDir: string): Promise<void> {
@@ -133,8 +145,63 @@ class DegitManager {
         }
     }
 
+    static async selectSourceRepo(): Promise<string> {
+        const defaultRepo = 'bmadcode/cursor-custom-agents-rules-generator';
+        const [owner, repo] = defaultRepo.split('/');
+
+        try {
+            const githubService = GitHubService.getInstance();
+            const spinner = Logger.progress('Fetching available repositories');
+
+            spinner.start();
+            const [defaultRepoInfo, forks] = await Promise.all([githubService.getRepoInfo(owner, repo), githubService.listForks(owner, repo)]);
+            spinner.stop();
+
+            // Add the original repository to the list
+            const allRepos: RepoChoice[] = [
+                {
+                    name: `${defaultRepo} (Original) (⭐ ${defaultRepoInfo.stargazers_count})`,
+                    value: defaultRepo,
+                    description: defaultRepoInfo.description,
+                },
+                ...forks.map(fork => ({
+                    name: `${fork.full_name} (⭐ ${fork.stargazers_count})`,
+                    value: fork.full_name,
+                    description: fork.description,
+                })),
+            ];
+
+            const { selectedRepo } = await inquirer.prompt([
+                {
+                    type: 'autocomplete',
+                    name: 'selectedRepo',
+                    message: 'Select a repository to clone from:',
+                    source: async (answersSoFar: any, input: string = '') => {
+                        if (!input) return allRepos;
+
+                        const searchResults = await githubService.searchForks(owner, repo, input);
+                        return [
+                            allRepos[0],
+                            ...searchResults.map(fork => ({
+                                name: `${fork.full_name} (⭐ ${fork.stargazers_count})`,
+                                value: fork.full_name,
+                                description: fork.description,
+                            })),
+                        ];
+                    },
+                },
+            ]);
+
+            return selectedRepo;
+        } catch (error) {
+            Logger.warn('Failed to fetch repositories, using default repository');
+            Logger.debug(`Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            return defaultRepo;
+        }
+    }
+
     static async copyTemplate(targetDir: string): Promise<void> {
-        const sourceRepo = 'bmadcode/cursor-custom-agents-rules-generator';
+        const sourceRepo = await this.selectSourceRepo();
         const spinner = Logger.progress('Copying template from repository\n');
 
         // Create a temporary directory

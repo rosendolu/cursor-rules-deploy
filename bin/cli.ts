@@ -25,7 +25,7 @@ program
   • Configures git and cursor settings
   • Generates documentation`
     )
-    .version('1.0.0')
+    .version('1.1.0')
     .argument('<target-dir>', 'Target directory to deploy rules and templates')
     .usage('<target-dir>')
     .on('--help', () => {

@@ -62,7 +62,7 @@ Use these specific versions and their features:
 ## Code Examples
 
 ### Command Line Interface (commander)
-```javascript
+```ts
 // Preferred
 program
   .name('cursor-rules-deploy')
@@ -76,7 +76,7 @@ if (process.argv.includes('--version')) {
 ```
 
 ### Logging (chalk)
-```javascript
+```ts
 // Preferred - Always use Logger class with chalk
 Logger.info(chalk.blue('Processing'), chalk.green(filename));
 Logger.error(chalk.red('Error:'), chalk.yellow(errorMessage));
@@ -91,7 +91,7 @@ console.debug('Debug:', debugInfo);
 ```
 
 ### File Operations (fs-extra)
-```javascript
+```ts
 // Preferred
 await fs.copy(sourcePath, targetPath, { overwrite: true });
 

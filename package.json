@@ -1,6 +1,6 @@
 {
     "name": "cursor-rules-deploy",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "🚀 A powerful CLI tool for deploying Cursor AI rules and templates - Enhance your development workflow with AI-powered coding assistance",
     "type": "module",
     "bin": {

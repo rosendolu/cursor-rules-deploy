@@ -118,8 +118,59 @@ class DegitManager {
         }
     }
 
+    private static async mergeFileContents(srcPath: string, destPath: string): Promise<{ merged: boolean }> {
+        try {
+            // Read source file content
+            const sourceContent = await fs.readFile(srcPath, 'utf-8');
+            const sourceLines = sourceContent
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line);
+
+            // If destination doesn't exist, just write the source content
+            if (!(await fs.pathExists(destPath))) {
+                await fs.writeFile(destPath, sourceContent);
+                return { merged: true };
+            }
+
+            // Read destination file content
+            const destContent = await fs.readFile(destPath, 'utf-8');
+            const destLines = destContent
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line);
+
+            // Find new lines that don't exist in destination
+            const newLines = sourceLines.filter(line => !destLines.includes(line));
+
+            if (newLines.length === 0) {
+                return { merged: false };
+            }
+
+            // Append new lines to destination
+            const updatedContent = destContent.trim() + '\n' + newLines.join('\n') + '\n';
+            await fs.writeFile(destPath, updatedContent);
+
+            return { merged: true };
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'EACCES') {
+                throw new Error(`Permission denied: Unable to write to ${destPath}`);
+            }
+            throw error;
+        }
+    }
+
     private static async copyWithCheck(src: string, dest: string): Promise<{ copied: boolean }> {
         try {
+            const filename = path.basename(src);
+            const specialFiles = ['.cursorignore', '.cursorindexingignore'];
+
+            // Handle special files that need merging
+            if (specialFiles.includes(filename)) {
+                const { merged } = await this.mergeFileContents(src, dest);
+                return { copied: merged };
+            }
+
             // check if the file exists
             const exists = await fs.pathExists(dest);
             if (exists) {
@@ -230,15 +281,21 @@ class DegitManager {
 
             const copiedFiles: string[] = [];
             const skippedFiles: string[] = [];
+            const mergedFiles: string[] = [];
 
             // Process each matched file
             for (const file of files) {
                 const src = path.join(tempDir, file);
                 const dest = path.join(targetDir, file);
+                const filename = path.basename(file);
 
                 const { copied } = await this.copyWithCheck(src, dest);
                 if (copied) {
-                    copiedFiles.push(file);
+                    if (['.cursorignore', '.cursorindexingignore'].includes(filename)) {
+                        mergedFiles.push(file);
+                    } else {
+                        copiedFiles.push(file);
+                    }
                 } else {
                     skippedFiles.push(file);
                 }
@@ -250,6 +307,13 @@ class DegitManager {
                 this.logGroupedFiles(this.groupFilesByDirectory(copiedFiles), 'copied');
             }
 
+            if (mergedFiles.length > 0) {
+                Logger.info('\n🔄 Merged files:');
+                mergedFiles.forEach(file => {
+                    Logger.info(`  🔄 Updated: ${file}`);
+                });
+            }
+
             if (skippedFiles.length > 0) {
                 Logger.info('\n⚠️ Skipped files:');
                 this.logGroupedFiles(this.groupFilesByDirectory(skippedFiles), 'skipped');
@@ -257,10 +321,10 @@ class DegitManager {
                 console.warn('To update these files, please back them up and remove them first.');
             }
 
-            if (copiedFiles.length > 0) {
-                spinner.succeed('Template files copied successfully');
+            if (copiedFiles.length > 0 || mergedFiles.length > 0) {
+                spinner.succeed('Template files processed successfully');
             } else {
-                spinner.warn('No new files were copied - all files already exist');
+                spinner.warn('No new files were copied or merged - all files already exist');
             }
         } catch (error) {
             spinner.fail('Failed to copy template files');

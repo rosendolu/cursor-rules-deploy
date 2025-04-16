@@ -1,0 +1,32 @@
+---
+description: "Translation Extraction and Key Generation"
+globs:  {@folder}/**/*.tsx
+alwaysApply: false
+---
+
+# Translation Extraction and Key Generation
+
+## Critical Rules
+
+- When processing `.tsx` files for translation:
+  1. Extract all `t('value')` calls where value doesn't start with a prefix
+  2. Generate normalized keys using camelCase without special characters (max 12 chars)
+  3. Maintain original text as translation value in JSON files
+  4. Preserve duplicate `t()` calls with same generated key
+  5. Require user to provide prefix in format `{prefix}.{sub}` before processing
+  6. Update both source files and translation JSONs atomically
+
+## Examples
+
+<example>
+Valid replacement: 
+Original: t('user profile')
+Generated: t('support.tl.userProfile')
+JSON entry: "support.tl.userProfile": "user profile"
+</example>
+
+<example type="invalid">
+Invalid key: t('user_profile')
+Invalid length: t('support.tl.thisIsWayTooLongForKey')
+Missing prefix: t('user')
+</example> 

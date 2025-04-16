@@ -1,0 +1,94 @@
+---
+description: Library and Dependency Management Guidelines.
+globs: 
+alwaysApply: false
+---
+
+
+# 📦 Library and Dependency Management Guidelines
+
+## Critical Rules
+
+- 🔍 Dependency Analysis
+  - Extract and analyze all dependencies from `package.json`
+  - Check Node.js version from `.nvmrc` first, fallback to `package.json` engines field
+  - Maintain a clear understanding of each dependency's purpose and version constraints
+  - Track peer dependencies and their compatibility
+
+- 🚀 Node.js Version Management
+  - Always respect the Node.js version specified in `.nvmrc` or `package.json`
+  - Utilize latest ECMAScript features available for the specified Node.js version
+  - Document any version-specific features or syntax being used
+  - Ensure all dependencies are compatible with the specified Node.js version
+
+- 📊 Version Compatibility
+  - Implement features based on the available dependency versions
+  - Check API compatibility before using new features from dependencies
+  - Follow semantic versioning guidelines for dependency updates
+  - Document any breaking changes or version-specific implementations
+
+## Examples
+
+<example>
+  # Valid Implementation Example
+  
+  # .nvmrc
+  18.19.0
+
+  # package.json
+  {
+    "name": "my-project",
+    "engines": {
+      "node": ">=18.19.0"
+    },
+    "dependencies": {
+      "express": "^4.18.0",
+      "typescript": "^5.0.0"
+    }
+  }
+
+  # Implementation using Node.js 18 features
+  const data = await fetch('https://api.example.com/data');
+  const result = await data.json();
+  
+  // Using Express 4.18 features
+  app.use(express.json({ limit: '10mb' }));
+  
+  // Using TypeScript 5.0 features
+  const config = {
+    port: 3000,
+    host: 'localhost'
+  } as const;
+</example>
+
+<example type="invalid">
+  # Invalid Implementation Example
+  
+  # .nvmrc
+  16.14.0
+
+  # package.json
+  {
+    "name": "my-project",
+    "engines": {
+      "node": ">=16.14.0"
+    },
+    "dependencies": {
+      "express": "^4.17.0",
+      "typescript": "^4.5.0"
+    }
+  }
+
+  # Implementation using incompatible features
+  // ❌ Using fetch without polyfill (not available in Node.js 16)
+  const data = await fetch('https://api.example.com/data');
+  
+  // ❌ Using TypeScript 5.0 features with TypeScript 4.5
+  const config = {
+    port: 3000,
+    host: 'localhost'
+  } satisfies Config;
+  
+  // ❌ Using Express middleware options not available in 4.17
+  app.use(express.json({ limit: '10mb', strict: false }));
+</example> 

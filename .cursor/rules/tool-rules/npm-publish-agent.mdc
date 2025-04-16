@@ -1,0 +1,69 @@
+---
+description: NPM Package Publishing Guidelines
+globs: 
+alwaysApply: false
+---
+
+
+
+# NPM Package Publishing Guidelines
+
+## Critical Rules
+
+- 🧪 Always run tests before publishing
+  - All tests must pass successfully
+  - Fail the publishing process if any test fails
+  
+- 🏗️ Build process must be completed
+  - Run the build command specified in package.json
+  - Verify build artifacts are generated correctly
+  - Fail if build process encounters errors
+  
+- 📦 Version management
+  - Version must be updated using npm version command
+  - Only accept valid semver increments: major, minor, or patch
+  - Version bump must be committed to git
+  
+- 🚀 Publishing process
+  - Verify user is logged in to npm
+  - Ensure package.json is properly configured
+  - Run npm publish only after all previous steps succeed
+  - Verify successful publication via npm view
+
+## Examples
+
+<example>
+  # ✅ Valid Publishing Workflow
+  
+  # 1. Run tests
+  npm test  # All tests pass
+  
+  # 2. Build package
+  npm run build  # Build succeeds
+  
+  # 3. Update version (interactive)
+  npm version patch  # Version updated to 1.0.1
+  
+  # 4. Publish package
+  npm publish  # Package published successfully
+</example>
+
+<example type="invalid">
+  # ❌ Invalid Publishing Workflow
+  
+  # Skipping tests and directly publishing
+  npm publish
+  
+  # Publishing without version update
+  npm run build
+  npm publish
+  
+  # Publishing with failed tests
+  npm test  # Tests failed
+  npm version minor
+  npm publish
+  
+  # Wrong version update format
+  npm version 1.0.1  # Direct version number instead of semver keyword
+  npm publish
+</example> 

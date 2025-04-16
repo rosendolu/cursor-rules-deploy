@@ -1,0 +1,54 @@
+---
+description: "JSON Translation to Table Format Rule"
+globs:  
+alwaysApply: false
+---
+
+# JSON Translation to Table Format Rule
+
+## Critical Rules
+
+- Input must be a JSON with key-value pairs where:
+  - Keys follow the format `{prefix}.{sub}`
+  - Values are English text that will be preserved as-is
+  
+- Processing Requirements:
+  - Parse all `"key": "value"` pairs from JSON input
+  - Filter out keys that don't match the `{prefix}.` pattern (skip if no prefix specified)
+  - Generate Chinese translations for English value content
+  
+- Output Table Format:
+  - Must use CSV-style format with 3 columns
+  - First row must be the header: `key,英文,中文`
+  - Each subsequent row follows: `{original_key},{english_value},{chinese_translation}`
+  - Maintain original key ordering from input JSON
+
+## Examples
+
+<example>
+Input JSON:
+{
+  "common.welcome": "Welcome to our platform",
+  "error.notFound": "Page not found",
+  "invalid_key": "This will be filtered out"
+}
+
+Output Table:
+key,英文,中文
+common.welcome,Welcome to our platform,欢迎来到我们的平台
+error.notFound,Page not found,页面未找到
+</example>
+
+<example type="invalid">
+// Missing required columns
+key,英文
+common.welcome,Welcome to our platform
+
+// Incorrect column order
+英文,key,中文
+Welcome to our platform,common.welcome,欢迎来到我们的平台
+
+// Invalid key format (missing prefix structure)
+key,英文,中文
+welcome,Welcome to our platform,欢迎来到我们的平台
+</example> 

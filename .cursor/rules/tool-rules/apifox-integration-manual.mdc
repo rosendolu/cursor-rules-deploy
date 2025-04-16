@@ -1,0 +1,126 @@
+# API Fox Integration Guidelines
+
+## Critical Rules
+
+- All API documentation must be synchronized with API Fox documentation
+- API implementation must strictly follow the API Fox documentation specifications
+- Response types must be generated based on API Fox documentation examples
+- API endpoints must match exactly with the paths defined in API Fox
+- Version control of API documentation must be maintained through API Fox
+- Use API Fox as the single source of truth for API specifications
+
+### File Structure
+- Each API module must contain at minimum:
+  - `hooks.ts`: Contains all API hook implementations
+  - `types.ts`: Contains all TypeScript interfaces and types
+- Additional files like `constants.ts` or `utils.ts` can be added as needed
+
+### TypeScript Guidelines
+- Maximize type reuse through TypeScript utility types (Pick, Omit, Partial, etc.)
+- Use interface composition over repetition
+- Common patterns to follow:
+  - Request params: `interface I{ModuleName}{Action}Params`
+  - Response types: `interface I{ModuleName}{Action}Response`
+  - List types: `type T{Entity}List = Array<T{Entity}>`
+- Place shared types in a common types.ts file
+
+### Response Handling
+- API response types must always correspond to the `data` field of the response
+- Generic type parameter in `useQuery` should match the expected data structure
+- Use type assertions sparingly and only when necessary
+
+## Examples
+
+<example>
+import {isNil} from 'lodash'
+import { useMutation, UseMutationResult, useQuery, UseQueryResult } from '@tanstack/react-query';
+import {
+    IChatLogQueryParams,
+    IChatLogResponse,
+    ISopCategory,
+    ISopCategoryParams,
+    ISopDocument,
+    ISopDocumentListParams,
+    ISopDocumentListResponse,
+    ISopSaveCategoryParams,
+    ISopSaveDocumentParams,
+} from './types';
+
+  // types.ts
+  interface IBaseResponse<T> {
+    code: number;
+    message: string;
+    data: T;
+  }
+
+  interface IChatMessage {
+    id: string;
+    content: string;
+    timestamp: number;
+  }
+
+  // Reusing types with utility types
+  type TChatMessageList = Array<IChatMessage>;
+  type TChatMessagePartial = Partial<IChatMessage>;
+  
+  interface IChatLogQueryParams {
+    startTime: number;
+    endTime: number;
+    userId?: string;
+  }
+
+  interface IChatLogResponse {
+    messages: TChatMessageList;
+    total: number;
+  }
+
+  // hooks.ts
+  export const useGetDetailList = (params: IChatLogQueryParams) => {
+    return useQuery<IChatLogResponse>({
+      queryKey: ['chat-log-chat-list', params],
+      refetchOnWindowFocus: false,
+      queryFn: () =>
+        request({
+          url: '/cs/service/get_im_service_chat_list',
+          method: 'POST',
+          data: params,
+        }),
+      enabled: !isNil(params),
+      staleTime: 6e5,
+    });
+  };
+</example>
+
+<example type="invalid">
+  // Invalid: Missing types file
+  // Direct implementation in hooks without separate types
+
+  // Invalid: Not reusing types
+  interface IUserListResponse {
+    users: Array<{
+      id: string;
+      name: string;
+    }>;
+    total: number;
+  }
+
+  interface IGroupListResponse {
+    groups: Array<{
+      id: string;
+      name: string;
+    }>;
+    total: number;
+  }
+
+  // Invalid: Incorrect response type handling
+  export const useGetUsers = (params: IUserListParams) => {
+    return useQuery({  // Missing generic type parameter
+      queryKey: ['users', params],
+      queryFn: () => request({
+        url: '/api/users',
+        method: 'GET',
+        params,
+      }).then(res => res),  // Not extracting data field
+    });
+  };
+</example> 

@@ -67,6 +67,16 @@ cnpm dlx cursor-rules-deploy my-rules-project
 - Each command above will download and execute the latest version of cursor-rules-deploy
 - The tool will create a new rules project in the `my-rules-project` directory
 
+## 🌟 Show Your Support
+
+If you find this tool helpful, please consider giving it a star on GitHub! It helps make the project more visible and encourages further development.
+
+[![Give a Star](https://img.shields.io/badge/⭐_Give_a_Star-FREE-2ea44f?style=for-the-badge&logo=github)](https://github.com/rosendolu/cursor-rules-deploy/stargazers?q=you)
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=rosendolu/cursor-rules-deploy&type=Date)](https://star-history.com/#rosendolu/cursor-rules-deploy&Date)
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
@@ -80,10 +90,6 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🌟 Show Your Support
-
-If you find this tool helpful, please consider giving it a star on GitHub! It helps make the project more visible and encourages further development.
 
 ## 📫 Contact
 

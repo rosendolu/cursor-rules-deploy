@@ -71,7 +71,7 @@ cnpm dlx cursor-rules-deploy my-rules-project
 
 If you find this tool helpful, please consider giving it a star on GitHub! It helps make the project more visible and encourages further development.
 
-[![Give a Star](https://img.shields.io/badge/⭐_Give_a_Star-FREE-2ea44f?style=for-the-badge&logo=github)](https://github.com/rosendolu/cursor-rules-deploy/stargazers?q=you)
+[![Give a Star](https://img.shields.io/badge/⭐_Give_a_Star-FREE-2ea44f?style=for-the-badge&logo=github)](https://github.com/rosendolu/cursor-rules-deploy)
 
 ## ⭐ Star History
 

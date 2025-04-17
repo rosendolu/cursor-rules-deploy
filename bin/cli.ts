@@ -33,7 +33,6 @@ program
         Logger.info('Examples:');
         Logger.info("$ cursor-rules-deploy my-project    → Create in 'my-project' directory");
         Logger.info('$ cursor-rules-deploy .             → Create in current directory');
-        console.log('');
     })
     .action(async (targetDir: string, options: CommandOptions, command: Command) => {
         // Check for extra arguments

@@ -1,0 +1,117 @@
+---
+description: Library and Dependency Management Guidelines.
+globs: 
+alwaysApply: true
+---
+
+# Library Version and Feature Constraints
+
+## Critical Rules
+
+- Node.js version must be >= 22.14.0 as specified in package.json
+- Use exact versions of dependencies as specified in package.json
+- Follow library-specific best practices and patterns
+- Handle version-specific features gracefully
+- Document any version-specific changes
+- Test compatibility when upgrading dependencies
+
+## Core Dependencies
+
+### CLI and Interactive Libraries
+- `@inquirer/prompts` (^7.4.1)
+  - Use for interactive command-line prompts
+  - Import individual functions directly from package
+  - Utilize TypeScript types for better type safety
+  - Handle errors gracefully with try/catch
+
+- `commander` (^11.0.0)
+  - Use for command-line interface implementation
+  - Prefer declarative command definitions
+  - Utilize built-in option validation
+
+- `chalk` (^5.3.0)
+  - Use for terminal text styling
+  - Import as ESM module
+  - Use with Logger class for consistent styling
+
+- `ora` (^8.0.1)
+  - Use for loading spinners
+  - Implement with async operations
+  - Use consistent spinner styles
+
+### File System and GitHub Operations
+- `fs-extra` (^11.2.0)
+  - Prefer fs-extra methods over native fs
+  - Use promise-based API
+  - Utilize built-in error handling
+
+- `globby` (^14.1.0)
+  - Use for file pattern matching
+  - Import as ESM module
+  - Utilize TypeScript types
+
+- `@octokit/rest` (^21.1.1)
+  - Use for GitHub API operations
+  - Handle rate limiting gracefully
+  - Utilize TypeScript types
+
+### Development Tools
+- `eslint` (^8.57.1)
+  - Follow project's ESLint configuration
+  - Address all ESLint warnings and errors
+
+- `prettier` (^3.2.5)
+  - Maintain consistent code formatting
+  - Use project's Prettier configuration
+
+## Examples
+
+<example>
+// Correct usage of @inquirer/prompts
+import { search } from '@inquirer/prompts';
+
+const answer = await search<string>({
+  message: 'Select a repository',
+  source: async (term: string | undefined, { signal }) => {
+    if (!term) return choices;
+    return choices.filter(choice => 
+      choice.title.toLowerCase().includes(term.toLowerCase())
+    );
+  }
+});
+
+// Correct usage of fs-extra
+import fs from 'fs-extra';
+
+await fs.ensureDir(targetDir);
+await fs.copy(src, dest, {
+  overwrite: false,
+  errorOnExist: false
+});
+
+// Correct usage of chalk with Logger
+import chalk from 'chalk';
+Logger.info(chalk.blue('Processing'), chalk.green(filename));
+</example>
+
+<example type="invalid">
+// Incorrect: Using require instead of import
+const chalk = require('chalk');
+
+// Incorrect: Not using fs-extra methods
+import fs from 'fs';
+fs.mkdirSync(targetDir);
+
+// Incorrect: Not handling errors in async operations
+const answer = await search({
+  message: 'Select option'
+}); // Missing error handling
+
+// Incorrect: Not using TypeScript types
+const result = await search({
+  message: 'Select option',
+  source: async term => {
+    return ['option1', 'option2']; // Missing proper type definitions
+  }
+});
+</example> 

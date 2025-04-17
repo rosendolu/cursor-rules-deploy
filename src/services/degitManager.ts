@@ -1,18 +1,14 @@
 import Logger from '@/utils/logger.js';
+import { search } from '@inquirer/prompts';
 import degit from 'degit';
 import fs from 'fs-extra';
 import { globby } from 'globby';
-import inquirer from 'inquirer';
-import inquirerPrompt from 'inquirer-autocomplete-prompt';
 import { rm } from 'node:fs/promises';
 import os from 'os';
 import path from 'path';
 import { GitHubService } from './GitHubService.js';
 
-// Register the autocomplete prompt
-inquirer.registerPrompt('autocomplete', inquirerPrompt);
-
-interface RepoChoice {
+interface RepoInfo {
     name: string;
     value: string;
     description: string;
@@ -202,14 +198,14 @@ class DegitManager {
 
         try {
             const githubService = GitHubService.getInstance();
-            const spinner = Logger.progress('Fetching available repositories');
+            const spinner = Logger.progress('Fetching available repositories\n');
 
             spinner.start();
             const [defaultRepoInfo, forks] = await Promise.all([githubService.getRepoInfo(owner, repo), githubService.listForks(owner, repo)]);
             spinner.stop();
 
             // Add the original repository to the list
-            const allRepos: RepoChoice[] = [
+            const allRepos: RepoInfo[] = [
                 {
                     name: `${defaultRepo} (Original) (⭐ ${defaultRepoInfo.stargazers_count})`,
                     value: defaultRepo,
@@ -222,28 +218,26 @@ class DegitManager {
                 })),
             ];
 
-            const { selectedRepo } = await inquirer.prompt([
-                {
-                    type: 'autocomplete',
-                    name: 'selectedRepo',
-                    message: 'Select a repository to clone from:',
-                    source: async (answersSoFar: any, input: string = '') => {
-                        if (!input) return allRepos;
+            const answer = await search<string>({
+                message: 'Select a repository (Type to filter by name or description)',
+                source: async (term: string | undefined) => {
+                    const filteredRepos = !term
+                        ? allRepos
+                        : allRepos.filter(
+                              repo =>
+                                  repo.name.toLowerCase().includes(term.toLowerCase()) ||
+                                  (repo.description?.toLowerCase() || '').includes(term.toLowerCase())
+                          );
 
-                        const searchResults = await githubService.searchForks(owner, repo, input);
-                        return [
-                            allRepos[0],
-                            ...searchResults.map(fork => ({
-                                name: `${fork.full_name} (⭐ ${fork.stargazers_count})`,
-                                value: fork.full_name,
-                                description: fork.description,
-                            })),
-                        ];
-                    },
+                    return filteredRepos.map(repo => ({
+                        value: repo.value,
+                        name: repo.name,
+                        description: repo.description,
+                    }));
                 },
-            ]);
+            });
 
-            return selectedRepo;
+            return answer;
         } catch (error) {
             Logger.warn('Failed to fetch repositories, using default repository');
             Logger.debug(`Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);

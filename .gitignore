@@ -2,4 +2,3 @@ node_modules
 .temp/
 temp/
 dist/
-test**/

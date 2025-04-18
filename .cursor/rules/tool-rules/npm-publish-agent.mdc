@@ -10,60 +10,163 @@ alwaysApply: false
 
 ## Critical Rules
 
-- 🧪 Always run tests before publishing
-  - All tests must pass successfully
-  - Fail the publishing process if any test fails
-  
-- 🏗️ Build process must be completed
-  - Run the build command specified in package.json
-  - Verify build artifacts are generated correctly
-  - Fail if build process encounters errors
-  
-- 📦 Version management
-  - Version must be updated using npm version command
-  - Only accept valid semver increments: major, minor, or patch
-  - Version bump must be committed to git
-  
-- 🚀 Publishing process
-  - Verify user is logged in to npm
-  - Ensure package.json is properly configured
-  - Run npm publish only after all previous steps succeed
-  - Verify successful publication via npm view
+- Always use GitHub Actions for automated package publishing
+- Store authentication tokens as GitHub Secrets, never in code
+- Use conventional commits format for automated versioning
+- Validate packages by building and testing before publishing
+- Tag releases with version numbers prefixed with 'v' (e.g., v1.0.0)
+- Configure workflows to trigger on both tag pushes and manual events
+- Generate and maintain changelogs for all releases
+- Ensure package.json contains all required fields before publishing
+- Scope packages appropriately (public/private, org-scoped)
+- Verify package contents before publishing using npm pack
+- Use a consolidated workflow for both npm and GitHub Packages publishing
+
+## GitHub Actions Setup Requirements
+
+- Create `.github/workflows/package-publish.yml` for a unified publishing workflow
+- Include registry selection in workflow_dispatch inputs
+- Set proper permissions in workflow file (contents:write, packages:write)
+- Configure Node.js environment using actions/setup-node@v4
+- Set registry URL based on selected target registry
+- Cache dependencies using the cache parameter
+- Run tests before publishing
+- Generate changelog using conventional-changelog-cli
+
+## Package Configuration Requirements
+
+- Valid package.json with all required fields:
+  - name, version, description, main, files
+  - scripts (build, test)
+  - publishConfig (access, registry)
+  - repository information
+- Package should be properly scoped for GitHub Packages (@username/package-name)
+- Files array should include only distribution files, not source code
+- Include README.md, LICENSE, and CHANGELOG.md
+
+## Security Guidelines
+
+- NPM_TOKEN must be stored as a GitHub Secret
+- Use GITHUB_TOKEN with minimal required permissions
+- Generate fresh tokens periodically
+- Do not expose tokens in logs or outputs
+- Use permission boundaries in GitHub Actions workflows
+
+## Version Management
+
+- Use semantic versioning (MAJOR.MINOR.PATCH)
+- Automate version bumps based on conventional commits:
+  - fix: patch version update
+  - feat: minor version update
+  - BREAKING CHANGE: major version update
+- Use npm version to update package.json and create tags
+- Push tags to trigger automated releases
+
+## Publishing Process Requirements
+
+- Option 1: Create and push a versioned tag (v1.0.0)
+- Option 2: Use workflow_dispatch with version selection and registry selection
+- Monitor workflow execution in GitHub Actions tab
+- Verify package publication in the target registry
+- Create GitHub Release with changelog information
+
+## Troubleshooting Guidelines
+
+- For authentication failures, verify token validity and permissions
+- For version conflicts, manually bump version
+- For workflow permission issues, check repository settings
+- For build failures, test build process locally before pushing
 
 ## Examples
 
 <example>
-  # ✅ Valid Publishing Workflow
-  
-  # 1. Run tests
-  npm test  # All tests pass
-  
-  # 2. Build package
-  npm run build  # Build succeeds
-  
-  # 3. Update version (interactive)
-  npm version patch  # Version updated to 1.0.1
-  
-  # 4. Publish package
-  npm publish  # Package published successfully
+# Proper Conventional Commit Messages
+feat: add user authentication flow
+fix: resolve calculation error in tax function
+docs: update installation instructions
+chore: update dependencies
+refactor: improve performance of search algorithm
+BREAKING CHANGE: restructure API response format
+
+# Valid GitHub Action Workflow
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'Release type (patch, minor, major)'
+        required: true
+        default: 'patch'
+      registry:
+        description: 'Target registry'
+        required: true
+        default: 'npm'
+        type: choice
+        options:
+          - npm
+          - github
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: ${{ github.event.inputs.registry == 'github' && 'https://npm.pkg.github.com' || 'https://registry.npmjs.org' }}
+      - run: npm ci
+      - run: npm test
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ github.event.inputs.registry == 'github' && secrets.GITHUB_TOKEN || secrets.NPM_TOKEN }}
+
+# Proper package.json Configuration
+{
+  "name": "package-name",
+  "version": "1.0.0",
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  }
+}
 </example>
 
 <example type="invalid">
-  # ❌ Invalid Publishing Workflow
-  
-  # Skipping tests and directly publishing
-  npm publish
-  
-  # Publishing without version update
-  npm run build
-  npm publish
-  
-  # Publishing with failed tests
-  npm test  # Tests failed
-  npm version minor
-  npm publish
-  
-  # Wrong version update format
-  npm version 1.0.1  # Direct version number instead of semver keyword
-  npm publish
+# Improper Conventional Commit Messages
+updated code
+fixed bug
+added stuff
+
+# Invalid GitHub Action Workflow
+name: Publish
+
+on: push # Too broad trigger
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm publish # Missing setup-node, testing and authentication
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # Incorrect token variable name
+
+# Improper package.json Configuration
+{
+  "name": "package-name",
+  "version": "1.0.0"
+  # Missing files, publishConfig
+}
+
+# Hardcoded Credentials (NEVER DO THIS)
+const token = "npm_abcdef123456";
 </example> 

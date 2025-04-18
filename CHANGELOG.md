@@ -1,5 +1,15 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+
+- Initial project setup
+- GitHub Actions workflows for npm and GitHub Packages publishing
+- Documentation for package publishing process
+
 ## [1.1.0] - 2024-03-26
 
 ### Added

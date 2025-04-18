@@ -1,0 +1,87 @@
+name: Publish Package
+
+on:
+    push:
+        tags:
+            - 'v*'
+    workflow_dispatch:
+        inputs:
+            release-type:
+                description: 'Release type (patch, minor, major)'
+                required: true
+                default: 'patch'
+                type: choice
+                options:
+                    - patch
+                    - minor
+                    - major
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22.x'
+                  registry-url: 'https://registry.npmjs.org'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run tests
+              run: npm test
+
+            - name: Build package
+              run: npm run build
+
+            # Automated version bump when using workflow_dispatch
+            - name: Version bump (manual trigger)
+              if: github.event_name == 'workflow_dispatch'
+              run: |
+                  git config --local user.email "actions@github.com"
+                  git config --local user.name "GitHub Actions"
+                  npm version ${{ github.event.inputs.release-type }} -m "chore(release): %s"
+                  echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+            # Extract version from tag when tag-triggered
+            - name: Extract version from tag (tag trigger)
+              if: github.event_name == 'push'
+              run: echo "NEW_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+            # Generate changelog
+            - name: Generate changelog
+              run: npx conventional-changelog-cli -p angular -i CHANGELOG.md -s -r 0
+
+            - name: Commit and push changelog
+              if: github.event_name == 'workflow_dispatch'
+              run: |
+                  git add CHANGELOG.md
+                  git commit -m "docs: update changelog for v${{ env.NEW_VERSION }}"
+                  git push origin HEAD:main
+                  git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
+                  git push origin "v${{ env.NEW_VERSION }}"
+
+            # Publish to npm
+            - name: Publish to npm
+              run: npm publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+            # Create GitHub Release
+            - name: Create GitHub Release
+              uses: actions/create-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: v${{ env.NEW_VERSION }}
+                  release_name: Release v${{ env.NEW_VERSION }}
+                  body_path: CHANGELOG.md
+                  draft: false
+                  prerelease: false

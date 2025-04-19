@@ -55,6 +55,11 @@ alwaysApply: true
   - Handle rate limiting gracefully
   - Utilize TypeScript types
 
+- `degit` (^2.8.4)
+  - Use for copying templates
+  - Handle errors appropriately
+  - Implement with async/await
+
 ### Development Tools
 - `eslint` (^8.57.1)
   - Follow project's ESLint configuration
@@ -63,6 +68,15 @@ alwaysApply: true
 - `prettier` (^3.2.5)
   - Maintain consistent code formatting
   - Use project's Prettier configuration
+
+- `typescript` (^5.4.2)
+  - Use latest TypeScript features
+  - Follow strict type checking
+  - Utilize path aliases for imports
+
+- `tsx` (^4.7.1)
+  - Use for running TypeScript files directly
+  - Utilize for development and testing
 
 ## Examples
 
@@ -80,14 +94,17 @@ const answer = await search<string>({
   }
 });
 
-// Correct usage of fs-extra
+// Correct usage of fs-extra with path alias
 import fs from 'fs-extra';
+import path from 'path';
+import Logger from '@/utils/logger.js';
 
 await fs.ensureDir(targetDir);
 await fs.copy(src, dest, {
   overwrite: false,
   errorOnExist: false
 });
+Logger.info(`Directory created: ${targetDir}`);
 
 // Correct usage of chalk with Logger
 import chalk from 'chalk';
@@ -106,6 +123,9 @@ fs.mkdirSync(targetDir);
 const answer = await search({
   message: 'Select option'
 }); // Missing error handling
+
+// Incorrect: Not using path alias for imports
+import { Logger } from '../../utils/logger.js';
 
 // Incorrect: Not using TypeScript types
 const result = await search({

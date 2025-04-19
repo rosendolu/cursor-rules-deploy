@@ -218,7 +218,7 @@ class DegitManager {
                 })),
             ];
 
-            const answer = await search<string>({
+            const answer = await search({
                 message: 'Select a repository (Type to filter by name or description)',
                 source: async (term: string | undefined) => {
                     const filteredRepos = !term
@@ -235,9 +235,11 @@ class DegitManager {
                         description: repo.description,
                     }));
                 },
+            }).catch(() => {
+                return allRepos;
             });
 
-            return answer;
+            return answer as any;
         } catch (error) {
             Logger.warn('Failed to fetch repositories, using default repository');
             Logger.debug(`Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);

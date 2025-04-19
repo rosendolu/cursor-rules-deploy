@@ -28,6 +28,7 @@ class Logger {
 
     static progress(message: string): Ora {
         return ora({
+            spinner: 'dots',
             text: message,
             color: 'blue',
         });

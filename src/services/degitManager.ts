@@ -207,9 +207,9 @@ class DegitManager {
             // Add the original repository to the list
             const allRepos: RepoInfo[] = [
                 {
-                    name: `${defaultRepo} (Original) (⭐ ${defaultRepoInfo.stargazers_count})`,
+                    name: `${defaultRepo} (Original) (⭐ ${defaultRepoInfo?.stargazers_count || 0})`,
                     value: defaultRepo,
-                    description: defaultRepoInfo.description,
+                    description: defaultRepoInfo?.description || '',
                 },
                 ...forks.map(fork => ({
                     name: `${fork.full_name} (⭐ ${fork.stargazers_count})`,

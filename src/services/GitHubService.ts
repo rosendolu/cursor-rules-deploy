@@ -50,6 +50,10 @@ export class GitHubService {
         });
     }
 
+    private isRateLimitError(error: any): boolean {
+        return error?.status === 403 && error?.message?.includes('API rate limit exceeded');
+    }
+
     public async listForks(owner: string, repo: string): Promise<ForkRepo[]> {
         const cacheKey = `${owner}/${repo}`;
         const cachedData = this.getCachedData(cacheKey);
@@ -58,38 +62,53 @@ export class GitHubService {
             return cachedData;
         }
 
+        const forks: ForkRepo[] = [];
         try {
             Logger.debug('Fetching forks from GitHub API');
-            const forks: ForkRepo[] = [];
             let page = 1;
             let hasMorePages = true;
 
             while (hasMorePages) {
-                const response = await this.octokit.repos.listForks({
-                    owner,
-                    repo,
-                    per_page: this.PER_PAGE,
-                    page,
-                });
+                try {
+                    const response = await this.octokit.repos.listForks({
+                        owner,
+                        repo,
+                        per_page: this.PER_PAGE,
+                        page,
+                    });
 
-                const currentForks = response.data.map(fork => ({
-                    full_name: fork.full_name,
-                    description: fork.description || '',
-                    stargazers_count: fork.stargazers_count || 0,
-                    updated_at: fork.updated_at || new Date().toISOString(),
-                }));
+                    const currentForks = response.data.map(fork => ({
+                        full_name: fork.full_name,
+                        description: fork.description || '',
+                        stargazers_count: fork.stargazers_count || 0,
+                        updated_at: fork.updated_at || new Date().toISOString(),
+                    }));
 
-                forks.push(...currentForks);
-                hasMorePages = response.data.length === this.PER_PAGE;
-                page++;
+                    forks.push(...currentForks);
+                    hasMorePages = response.data.length === this.PER_PAGE;
+                    page++;
+                } catch (error) {
+                    if (this.isRateLimitError(error)) {
+                        Logger.error('GitHub API rate limit exceeded');
+                        return forks;
+                    }
+                    Logger.error(`Failed to fetch forks page ${page}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    hasMorePages = false;
+                }
             }
 
-            this.setCacheData(cacheKey, forks);
+            if (forks.length > 0) {
+                this.setCacheData(cacheKey, forks);
+            }
             return forks;
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            Logger.error(`Failed to fetch forks: ${errorMessage}`);
-            throw new Error(`Failed to fetch forks: ${errorMessage}`);
+            if (this.isRateLimitError(error)) {
+                Logger.error('GitHub API rate limit exceeded');
+            } else {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                Logger.error(`Failed to fetch forks: ${errorMessage}`);
+            }
+            return forks;
         }
     }
 
@@ -102,7 +121,7 @@ export class GitHubService {
         );
     }
 
-    public async getRepoInfo(owner: string, repo: string): Promise<ForkRepo> {
+    public async getRepoInfo(owner: string, repo: string): Promise<ForkRepo | null> {
         try {
             const response = await this.octokit.repos.get({
                 owner,
@@ -116,9 +135,13 @@ export class GitHubService {
                 updated_at: response.data.updated_at,
             };
         } catch (error) {
+            if (this.isRateLimitError(error)) {
+                Logger.error('GitHub API rate limit exceeded');
+                return null;
+            }
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             Logger.error(`Failed to fetch repository info: ${errorMessage}`);
-            throw new Error(`Failed to fetch repository info: ${errorMessage}`);
+            return null;
         }
     }
 }

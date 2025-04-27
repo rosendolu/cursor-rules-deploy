@@ -198,9 +198,9 @@ class DegitManager {
 
         const spinner = Logger.progress('Fetching available repositories\n');
         try {
+            spinner.start();
             const githubService = GitHubService.getInstance();
 
-            spinner.start();
             const [defaultRepoInfo, forks] = await Promise.all([githubService.getRepoInfo(owner, repo), githubService.listForks(owner, repo)]);
 
             // Add the original repository to the list
@@ -216,6 +216,7 @@ class DegitManager {
                     description: fork.description,
                 })),
             ];
+            spinner.stop();
 
             const answer = await search({
                 message: 'Select a repository (Type to filter by name or description)',
@@ -329,6 +330,7 @@ class DegitManager {
             throw error;
         } finally {
             await DegitManager.cleanupTempDir(tempDir);
+            spinner.stop();
         }
     }
 }

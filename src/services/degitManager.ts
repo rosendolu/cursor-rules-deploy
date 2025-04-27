@@ -196,13 +196,12 @@ class DegitManager {
         const defaultRepo = 'bmadcode/cursor-custom-agents-rules-generator';
         const [owner, repo] = defaultRepo.split('/');
 
+        const spinner = Logger.progress('Fetching available repositories\n');
         try {
             const githubService = GitHubService.getInstance();
-            const spinner = Logger.progress('Fetching available repositories\n');
 
             spinner.start();
             const [defaultRepoInfo, forks] = await Promise.all([githubService.getRepoInfo(owner, repo), githubService.listForks(owner, repo)]);
-            spinner.stop();
 
             // Add the original repository to the list
             const allRepos: RepoInfo[] = [
@@ -244,6 +243,8 @@ class DegitManager {
             Logger.warn('Failed to fetch repositories, using default repository');
             Logger.debug(`Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return defaultRepo;
+        } finally {
+            spinner.stop();
         }
     }
 
